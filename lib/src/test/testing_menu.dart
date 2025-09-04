@@ -1,6 +1,7 @@
 import 'package:demo_pinpad/src/core/utils/debugger/debugger.dart';
 import 'package:demo_pinpad/src/test/card_test.dart';
 import 'package:demo_pinpad/src/test/device_info.dart';
+import 'package:demo_pinpad/src/test/protobuffer_test.dart';
 import 'package:demo_pinpad/src/test/serialport_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -75,7 +76,7 @@ class _TestingMenuState extends State<TestingMenu> {
                 child: ElevatedButton(
                   child: Text("4. Recibir Protobuffer."),
                   onPressed: () {
-                    Navigator.of(context).pushNamed(TestingMenu.route);
+                    Navigator.of(context).pushNamed(ReadProtobufferTest.route);
                   },
                 ),
               ),
