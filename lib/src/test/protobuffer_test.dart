@@ -32,7 +32,7 @@ class _ReadProtobufferTestState extends State<ReadProtobufferTest> {
     try {
       SerialPortCommunication.openPort(settings);
       setState(() {
-        msg = "Puerto listo.";
+        msg = "Puerto listo. Esperando protobuffer...";
       });
     } on SerialPortException catch (error) {
       setState(() {
@@ -46,6 +46,7 @@ class _ReadProtobufferTestState extends State<ReadProtobufferTest> {
       final data = await SerialPortCommunication.readPort();
       final user = DisplayUserRequest.fromBuffer(data);
       setState(() {
+        msg = "Se recibieron los siguentes datos:";
         name = user.name;
         address = user.address;
       });
@@ -73,23 +74,41 @@ class _ReadProtobufferTestState extends State<ReadProtobufferTest> {
       body: Center(
         child: Column(
           children: [
-            if (msg != null) Text(msg!),
+            if (msg != null)
+              Text(
+                msg!,
+                textAlign: TextAlign.center,
+              ),
             if (name != null) const SizedBox(height: 16),
-            if (name != null) Text("Name: ${name!}"),
+            if (name != null)
+              Text(
+                "Name: ${name!}",
+                textAlign: TextAlign.center,
+              ),
             if (name != null) const SizedBox(height: 16),
-            if (address != null) Text("Address: ${address!}"),
+            if (address != null)
+              Text(
+                "Address: ${address!}",
+                textAlign: TextAlign.center,
+              ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _openPort,
-              child: Text(
-                "Abrir puerto",
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _openPort,
+                child: Text(
+                  "Abrir puerto",
+                ),
               ),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _readPort,
-              child: Text(
-                "Recibir usuario",
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _readPort,
+                child: Text(
+                  "Recibir usuario",
+                ),
               ),
             ),
           ],
