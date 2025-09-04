@@ -1,5 +1,4 @@
 import 'package:demo_pinpad/src/core/utils/debugger/debugger.dart';
-import 'package:demo_pinpad/src/features/user/presentation/screens/home.dart';
 import 'package:demo_pinpad/src/test/card_test.dart';
 import 'package:demo_pinpad/src/test/device_info.dart';
 import 'package:demo_pinpad/src/test/serialport_test.dart';
@@ -74,9 +73,9 @@ class _TestingMenuState extends State<TestingMenu> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  child: Text("3. Recibir Protobuffer."),
+                  child: Text("4. Recibir Protobuffer."),
                   onPressed: () {
-                    Navigator.of(context).pushNamed(UserPage.route);
+                    Navigator.of(context).pushNamed(TestingMenu.route);
                   },
                 ),
               ),
