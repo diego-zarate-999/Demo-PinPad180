@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+service DisplayMessageService {
+    rpc DisplayMessage (DisplayUserRequest) returns (DisplayUserResponse);
+}
+
+message DisplayUserRequest {
+    string name = 1;
+    string address = 2;
+}
+
+message DisplayUserResponse {
+    string message = 1;
+}

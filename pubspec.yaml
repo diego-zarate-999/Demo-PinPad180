@@ -1,0 +1,45 @@
+name: demo_pinpad
+description: "Oyente de comandos pinpad demo."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  agnostiko:
+    version: 2.0.0
+    hosted:
+      url: https://server-agnostiko-web-gnbxyenkeq-ue.a.run.app
+      name: agnostiko
+
+  agnostiko_scripts:
+    path: ./agnostiko_scripts/
+  
+  path: ^1.7.0
+  cupertino_icons: ^1.0.8
+  grpc: ^4.0.0
+  protobuf: ^4.2.0
+  equatable: ^2.0.7
+  dartz: ^0.10.1
+  flutter_bloc: ^9.1.1
+  bloc: ^9.0.0
+  get_it: ^8.0.3
+  ffi: ^2.1.0
+  http: ^1.5.0
+  dio: ^5.9.0
+  
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/ca/
+    - assets/images/
