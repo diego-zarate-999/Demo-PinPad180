@@ -6,7 +6,7 @@ import 'package:demo_pinpad/src/core/utils/debugger/debugger.dart';
 import 'package:demo_pinpad/src/test/card_test.dart';
 import 'package:demo_pinpad/src/test/device_info.dart';
 import 'package:demo_pinpad/src/test/protobuffer_test.dart';
-import 'package:demo_pinpad/src/test/serialport_test.dart';
+import 'package:demo_pinpad/src/test/serialport_comm_menu.dart';
 import 'package:demo_pinpad/src/test/testing_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -35,10 +35,9 @@ void main() async {
           TestingMenu.route: (context) => const TestingMenu(),
           DeviceInfo.route: (context) => const DeviceInfo(),
           TestCardReader.route: (context) => const TestCardReader(),
-          SerialportTest.route: (context) => const SerialportTest(),
+          SerialportCommMenu.route: (context) => const SerialportCommMenu(),
           ReadProtobufferTest.route: (context) => const ReadProtobufferTest(),
         },
-        home: SplashScreen(),
       ),
     ),
   );

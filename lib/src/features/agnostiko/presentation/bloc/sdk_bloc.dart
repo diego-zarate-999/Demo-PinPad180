@@ -40,9 +40,7 @@ class SdkBloc extends Bloc<SdkEvent, SdkState> {
         /// La carga ha sido completada
         ///
 
-        await beep(500, 300);
-        await beep(750, 300);
-        await beep(1000, 300);
+        await beep(500, 500);
 
         emit(LoadedSdkState());
       },

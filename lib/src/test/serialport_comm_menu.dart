@@ -1,22 +1,20 @@
 import 'package:demo_pinpad/src/core/utils/debugger/debugger.dart';
 import 'package:demo_pinpad/src/core/utils/keypad/keypad.dart';
-import 'package:demo_pinpad/src/test/card_test.dart';
-import 'package:demo_pinpad/src/test/device_info.dart';
-import 'package:demo_pinpad/src/test/protobuffer_test.dart';
-import 'package:demo_pinpad/src/test/serialport_comm_menu.dart';
+import 'package:demo_pinpad/src/serial_port/serialport.dart';
+import 'package:demo_pinpad/src/test/serialport_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-class TestingMenu extends StatefulWidget {
-  static const String route = "/test";
+class SerialportCommMenu extends StatefulWidget {
+  static const String route = "/test-seriaport-menu";
 
-  const TestingMenu({super.key});
+  const SerialportCommMenu({super.key});
 
   @override
-  State<TestingMenu> createState() => _TestingMenuState();
+  State<SerialportCommMenu> createState() => _SerialportCommMenuState();
 }
 
-class _TestingMenuState extends State<TestingMenu> {
+class _SerialportCommMenuState extends State<SerialportCommMenu> {
   final _focusNode = FocusNode();
 
   void _closeApp() {
@@ -26,20 +24,34 @@ class _TestingMenuState extends State<TestingMenu> {
   void _handleDigitPressed(int enteredDigit) async {
     Debugger.log("Digit: $enteredDigit");
 
+    CommunicationType selectedCommType;
     switch (enteredDigit) {
       case 1:
-        Navigator.of(context).pushNamed(TestCardReader.route);
+        selectedCommType = CommunicationType.pinpad;
         break;
       case 2:
-        Navigator.of(context).pushNamed(SerialportCommMenu.route);
+        selectedCommType = CommunicationType.rs232;
         break;
       case 3:
-        Navigator.of(context).pushNamed(DeviceInfo.route);
+        selectedCommType = CommunicationType.usbHost;
         break;
       case 4:
-        Navigator.of(context).pushNamed(ReadProtobufferTest.route);
+        selectedCommType = CommunicationType.usbHostHid;
         break;
+      case 5:
+        selectedCommType = CommunicationType.usbSerial;
+        break;
+      default:
+        return;
     }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (ctx) => SerialportTest(
+          communicationType: selectedCommType,
+        ),
+      ),
+    );
   }
 
   @override
@@ -54,7 +66,7 @@ class _TestingMenuState extends State<TestingMenu> {
       ),
       child: Scaffold(
         appBar: AppBar(
-          title: const Text("Pruebas"),
+          title: const Text("Tipo de Puerto"),
           actions: [
             IconButton(
               onPressed: _closeApp,
@@ -68,7 +80,7 @@ class _TestingMenuState extends State<TestingMenu> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "1. Lectura de Tarjeta.",
+                "1. PINPAD.",
                 textAlign: TextAlign.left,
                 style: TextStyle(
                   fontSize: 20,
@@ -76,7 +88,7 @@ class _TestingMenuState extends State<TestingMenu> {
               ),
               const SizedBox(height: 16),
               Text(
-                "2. Comunicación Serial.",
+                "2. RS232.",
                 textAlign: TextAlign.left,
                 style: TextStyle(
                   fontSize: 20,
@@ -84,7 +96,7 @@ class _TestingMenuState extends State<TestingMenu> {
               ),
               const SizedBox(height: 16),
               Text(
-                "3. Información del Dispositivo.",
+                "3. USB HOST.",
                 textAlign: TextAlign.left,
                 style: TextStyle(
                   fontSize: 20,
@@ -92,12 +104,20 @@ class _TestingMenuState extends State<TestingMenu> {
               ),
               const SizedBox(height: 16),
               Text(
-                "4. Recibir Protobuffer.",
+                "4. USB HOST HID.",
                 textAlign: TextAlign.left,
                 style: TextStyle(
                   fontSize: 20,
                 ),
-              )
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "5. USB SERIAL.",
+                textAlign: TextAlign.left,
+                style: TextStyle(
+                  fontSize: 20,
+                ),
+              ),
             ],
           ),
         ),
