@@ -32,7 +32,7 @@ class _SerialportTestState extends State<SerialportTest> {
 
     try {
       Debugger.log("Abriendo puerto serial...");
-      SerialPortCommunication.openPort(settings);
+      await SerialPortCommunication.openPort(settings);
       Debugger.log("Puerto serial listo!!!");
       setState(() {
         _msg = "Abierto como: ${widget.communicationType.name}";

@@ -12,7 +12,7 @@ class Debugger {
   Debugger._internal();
 
   static late File _logFile;
-  static const String _logFileName = "LOGSS";
+  static const String _logFileName = "APP_LOG_FILES_1";
 
   static Future<void> init({String logFileName = _logFileName}) async {
     final dir = (await getApplicationDocumentsDirectory()).path;

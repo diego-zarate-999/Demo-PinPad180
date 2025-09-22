@@ -1,5 +1,6 @@
 import 'dart:ffi';
 import 'package:demo_pinpad/src/core/error/exception.dart';
+import 'package:demo_pinpad/src/core/utils/debugger/debugger.dart';
 import 'package:ffi/ffi.dart';
 
 import 'package:demo_pinpad/src/serial_port/ffi/serialport_ffi.dart';
@@ -124,13 +125,20 @@ class SerialPortCommunication {
   ///
 
   static Future<void> openPort(SerialportSettings settings) async {
+    Debugger.log("[openPort]");
     if (_instance == null) {
+      Debugger.log("Inicializar singleton.");
       final singleton = SerialPortCommunication._internal(settings);
+
+      Debugger.log("Build FFI.");
       singleton._serialportFFI = await SerialportFFIImpl.build();
       _instance = singleton;
+      Debugger.log("Singleton inicializado.");
     }
 
+    Debugger.log("Llamando a open port internal");
     await _instance!._openPortInternal();
+    Debugger.log("Open port internal terminado");
   }
 
   static Future<void> closePort() async {
@@ -171,6 +179,7 @@ class SerialPortCommunication {
   ///
 
   Future<void> _openPortInternal() async {
+    Debugger.log("[_openPortInternal]");
     _portSettings = calloc<PortSettings>();
     _portSettings!.ref
       ..baudRate = _serialPortSettings.baudRate.value
@@ -178,10 +187,14 @@ class SerialPortCommunication {
       ..stopBits = _serialPortSettings.stopBits.index
       ..parity = _serialPortSettings.parityType.index;
 
+    Debugger.log("Usando la FFI");
+
     final result = _serialportFFI.portOpen(
       _serialPortSettings.portType.value,
       _portSettings!,
     );
+
+    Debugger.log("Result abrir puerto = $result");
 
     if (result != 0) {
       calloc.free(_portSettings!);

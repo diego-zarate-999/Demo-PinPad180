@@ -1,5 +1,6 @@
 import 'dart:ffi';
 
+import 'package:demo_pinpad/src/core/utils/debugger/debugger.dart';
 import 'package:demo_pinpad/src/serial_port/ffi/utils/typedef.dart';
 import 'package:ffi/ffi.dart';
 
@@ -46,7 +47,10 @@ class SerialportFFIImpl implements SerialportFFI {
 
   static Future<SerialportFFIImpl> build() async {
     try {
-      final lib = DynamicLibrary.open("libserial_wrapper.so");
+      Debugger.log("Abrir .so.");
+      final lib = DynamicLibrary.open('libserial_wrapper.so');
+
+      Debugger.log(".so cargado");
 
       return SerialportFFIImpl._(lib);
     } catch (e) {
