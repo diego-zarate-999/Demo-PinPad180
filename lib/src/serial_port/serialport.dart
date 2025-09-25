@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:ffi';
+import 'dart:typed_data';
 import 'package:demo_pinpad/src/core/error/exception.dart';
 import 'package:demo_pinpad/src/core/utils/debugger/debugger.dart';
 import 'package:ffi/ffi.dart';
@@ -95,6 +97,7 @@ enum ParityType {
 }
 
 class SerialportSettings {
+  final CommunicationType communicationType;
   final BaudRateType baudRate;
   final DataBitsType dataBits;
   final StopBitsType stopBits;
@@ -102,6 +105,7 @@ class SerialportSettings {
   final CommunicationType portType;
 
   SerialportSettings({
+    required this.communicationType,
     required this.baudRate,
     required this.dataBits,
     required this.stopBits,
@@ -110,95 +114,113 @@ class SerialportSettings {
   });
 }
 
-class SerialPortCommunication {
-  final SerialportSettings _serialPortSettings;
-  late final SerialportFFI _serialportFFI;
+class SerialPortEvent {
+  final Uint8List data;
 
-  Pointer<PortSettings>? _portSettings;
+  SerialPortEvent({required this.data});
+}
 
-  static SerialPortCommunication? _instance;
+///
+/// Singleton para las funciones de comnunicacion por puerto serial.
+///
 
-  SerialPortCommunication._internal(this._serialPortSettings);
+class SerialPort {
+  static final SerialPort _instance = SerialPort._internal();
 
-  /// Funciones disponibles por usuarios
-  /// de la clase.
+  ///
+  /// FFI para la comunicacion serial con NAPI.
+  ///
+  final SerialportFFI _serialportFFI = SerialportFFINapi();
+
+  ///
+  /// Stream para eventos de puerto serial.
+  ///
+  late final StreamController<SerialPortEvent> _controller;
+
+  ///
+  /// Control de la escucha del puerto.
+  ///
+  bool _isOpen = false;
+
+  ///
+  /// Settings de puerto serial.
+  ///
+  late SerialportSettings _serialPortSettings;
+
+  SerialPort._internal();
+
+  //
+  /// Constructor que siempre devuelve la misma instancia
   ///
 
-  static Future<void> openPort(SerialportSettings settings) async {
-    Debugger.log("[openPort]");
-    if (_instance == null) {
-      Debugger.log("Inicializar singleton.");
-      final singleton = SerialPortCommunication._internal(settings);
-
-      Debugger.log("Build FFI.");
-      singleton._serialportFFI = await SerialportFFIImpl.build();
-      _instance = singleton;
-      Debugger.log("Singleton inicializado.");
-    }
-
-    Debugger.log("Llamando a open port internal");
-    await _instance!._openPortInternal();
-    Debugger.log("Open port internal terminado");
+  factory SerialPort() {
+    return _instance;
   }
 
-  static Future<void> closePort() async {
-    if (_instance != null) {
-      await _instance!._closePortInternal();
-      _instance = null;
-    }
-  }
-
-  static Future<void> writePort(List<int> data) async {
-    if (_instance == null) {
+  Stream<SerialPortEvent> open(SerialportSettings settings) {
+    if (_isOpen) {
       throw SerialPortException(
-        message: "Puerto no inicializado. Llama a [openPort] primero.",
-        errorCode: -1,
-      );
+          message: "Puerto ya se encuentra abierto.", errorCode: -1);
     }
-    await _instance!._writePortInternal(data);
+
+    _isOpen = true;
+    _controller = StreamController<SerialPortEvent>.broadcast();
+    _serialPortSettings = settings;
+
+    ///
+    /// Abrir puerto serial.
+    ///
+    _openPortInternal();
+
+    ///
+    /// Quedar a al escucha de puerto serial.
+    ///
+    _listenSerialPort();
+
+    return _controller.stream;
   }
 
-  static Future<List<int>> readPort({
-    int bufferSize = 256,
-    int timeoutMs = 5000,
-  }) async {
-    if (_instance == null) {
+  void write(List<int> data) async {
+    if (!_isOpen) {
       throw SerialPortException(
-        message: "Puerto no inicializado. Llama a [openPort] primero.",
-        errorCode: -1,
-      );
+          message: "El puierto no se encuentra abierto.", errorCode: -1);
     }
-    return await _instance!._readPortInternal(
-      bufferSize: bufferSize,
-      timeoutMs: timeoutMs,
-    );
+
+    _writePortInternal(data);
   }
 
-  /// Funciones internas.
+  void close() async {
+    if (!_isOpen) {
+      return;
+    }
+
+    _isOpen = false;
+    _closePortInternal();
+  }
+
   ///
+  /// Funciones internas del singleton.
   ///
 
-  Future<void> _openPortInternal() async {
+  void _openPortInternal() {
     Debugger.log("[_openPortInternal]");
-    _portSettings = calloc<PortSettings>();
-    _portSettings!.ref
+
+    final portSettings = calloc<PortSettingsFFI>();
+    portSettings.ref
       ..baudRate = _serialPortSettings.baudRate.value
       ..dataBits = _serialPortSettings.dataBits.value
       ..stopBits = _serialPortSettings.stopBits.index
       ..parity = _serialPortSettings.parityType.index;
 
-    Debugger.log("Usando la FFI");
-
     final result = _serialportFFI.portOpen(
       _serialPortSettings.portType.value,
-      _portSettings!,
+      portSettings,
     );
 
     Debugger.log("Result abrir puerto = $result");
 
     if (result != 0) {
-      calloc.free(_portSettings!);
-      _portSettings = null;
+      calloc.free(portSettings);
       throw SerialPortException(
         message: "Error al abrir el puerto serial.",
         errorCode: result,
@@ -206,31 +228,64 @@ class SerialPortCommunication {
     }
   }
 
-  Future<void> _closePortInternal() async {
-    final result = _serialportFFI.portClose(_serialPortSettings.portType.value);
+  void _listenSerialPort() async {
+    while (_isOpen) {
+      final bytes = await _readPortInternal();
+      if (bytes != null) {
+        Debugger.log("Emitiendo evento en stream");
+        _controller.add(SerialPortEvent(data: bytes));
+      }
+
+      await Future.delayed(const Duration(milliseconds: 1));
+    }
+  }
+
+  Future<Uint8List?> _readPortInternal({
+    int bufferSize = 256,
+    int timeoutMs = 300,
+  }) async {
+    final buf = calloc<Uint8>(bufferSize);
+    final lenPtr = calloc<Int32>()..value = bufferSize;
+
+    Debugger.log("Leyendo serial...");
+
+    final result = _serialportFFI.portRead(
+      _serialPortSettings.portType.value,
+      buf,
+      lenPtr,
+      timeoutMs,
+    );
+
+    if (result == -10) {
+      Debugger.log("Timeout!");
+      return null;
+    }
+
     if (result != 0) {
+      Debugger.log("[_readPortInternal] error = $result");
+
       throw SerialPortException(
-        message: "Error al cerrar el puerto serial.",
+        message: "Error al leer del puerto serial.",
         errorCode: result,
       );
     }
 
-    if (_portSettings != null) {
-      calloc.free(_portSettings!);
-      _portSettings = null;
+    final bytesRead = lenPtr.value;
+    if (bytesRead <= 0) {
+      return null;
     }
+
+    Debugger.log("[_readPortInternal] leido con exito");
+    final bytes = List.generate(bytesRead, (i) => buf[i]);
+
+    calloc.free(buf);
+    calloc.free(lenPtr);
+
+    return Uint8List.fromList(bytes);
   }
 
-  Future<void> _writePortInternal(List<int> data) async {
-    if (_portSettings == null) {
-      throw SerialPortException(
-        message: "Puerto serial no abierto",
-        errorCode: -1,
-      );
-    }
-
+  void _writePortInternal(List<int> data) {
     final buf = calloc<Uint8>(data.length);
-
     try {
       for (int i = 0; i < data.length; i++) {
         buf[i] = data[i];
@@ -241,8 +296,6 @@ class SerialPortCommunication {
         buf,
         data.length,
       );
-
-      _serialportFFI.portFlush(_serialPortSettings.portType.value);
 
       if (result != 0) {
         throw SerialPortException(
@@ -255,35 +308,13 @@ class SerialPortCommunication {
     }
   }
 
-  Future<List<int>> _readPortInternal({
-    int bufferSize = 256,
-    int timeoutMs = 5000,
-  }) async {
-    final buf = calloc<Uint8>(bufferSize);
-    final lenPtr = calloc<Int32>()..value = bufferSize;
-
-    try {
-      final result = _serialportFFI.portRead(
-        _serialPortSettings.portType.value,
-        buf,
-        lenPtr,
-        timeoutMs,
+  void _closePortInternal() {
+    final result = _serialportFFI.portClose(_serialPortSettings.portType.value);
+    if (result != 0) {
+      throw SerialPortException(
+        message: "Error al cerrar el puerto serial.",
+        errorCode: result,
       );
-
-      if (result != 0) {
-        throw SerialPortException(
-          message: "Error al leer del puerto serial.",
-          errorCode: result,
-        );
-      }
-
-      final bytesRead = lenPtr.value;
-      if (bytesRead <= 0) return [];
-
-      return List<int>.generate(bytesRead, (i) => buf[i]);
-    } finally {
-      calloc.free(buf);
-      calloc.free(lenPtr);
     }
   }
 }

@@ -20,8 +20,11 @@ class _ReadProtobufferTestState extends State<ReadProtobufferTest> {
   String? name;
   String? address;
 
+  late Stream<SerialPortEvent> _serialStream;
+
   Future<void> _openPort() async {
     final settings = SerialportSettings(
+      communicationType: CommunicationType.usbSerial,
       baudRate: BaudRateType.baud115200,
       dataBits: DataBitsType.data8,
       parityType: ParityType.parNone,
@@ -30,26 +33,20 @@ class _ReadProtobufferTestState extends State<ReadProtobufferTest> {
     );
 
     try {
-      SerialPortCommunication.openPort(settings);
+      _serialStream = SerialPort().open(settings);
       setState(() {
         msg = "Puerto listo. Esperando protobuffer...";
       });
-    } on SerialPortException catch (error) {
-      setState(() {
-        msg = "${error.message} code: ${error.errorCode}";
-      });
-    }
-  }
 
-  Future<void> _readPort() async {
-    try {
-      final data = await SerialPortCommunication.readPort();
-      final user = DisplayUserRequest.fromBuffer(data);
-      setState(() {
-        msg = "Se recibieron los siguentes datos:";
-        name = user.name;
-        address = user.address;
-      });
+      await for (final event in _serialStream) {
+        final data = event.data;
+        final user = DisplayUserRequest.fromBuffer(data);
+
+        setState(() {
+          name = user.name;
+          address = user.address;
+        });
+      }
     } on SerialPortException catch (error) {
       setState(() {
         msg = "${error.message} code: ${error.errorCode}";
@@ -98,16 +95,6 @@ class _ReadProtobufferTestState extends State<ReadProtobufferTest> {
                 onPressed: _openPort,
                 child: Text(
                   "Abrir puerto",
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _readPort,
-                child: Text(
-                  "Recibir usuario",
                 ),
               ),
             ),

@@ -4,6 +4,7 @@ import 'package:demo_pinpad/src/test/card_test.dart';
 import 'package:demo_pinpad/src/test/device_info.dart';
 import 'package:demo_pinpad/src/test/protobuffer_test.dart';
 import 'package:demo_pinpad/src/test/serialport_comm_menu.dart';
+import 'package:demo_pinpad/src/test/serialport_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -38,6 +39,9 @@ class _TestingMenuState extends State<TestingMenu> {
         break;
       case 4:
         Navigator.of(context).pushNamed(ReadProtobufferTest.route);
+        break;
+      case 5:
+        Navigator.of(context).pushNamed(SerialportTest.route);
         break;
     }
   }

@@ -16,12 +16,15 @@ class UserPage extends StatefulWidget {
 }
 
 class _UserPageState extends State<UserPage> {
+  late Stream<SerialPortEvent> _streamSerial;
+
   String? msg;
   String? name;
   String? address;
 
   Future<void> _openPort() async {
     final settings = SerialportSettings(
+      communicationType: CommunicationType.usbSerial,
       baudRate: BaudRateType.baud115200,
       dataBits: DataBitsType.data8,
       parityType: ParityType.parNone,
@@ -30,7 +33,7 @@ class _UserPageState extends State<UserPage> {
     );
 
     try {
-      SerialPortCommunication.openPort(settings);
+      SerialPort().open(settings);
       setState(() {
         msg = "Puerto listo.";
       });
@@ -43,12 +46,14 @@ class _UserPageState extends State<UserPage> {
 
   Future<void> _readPort() async {
     try {
-      final data = await SerialPortCommunication.readPort();
-      final user = DisplayUserRequest.fromBuffer(data);
-      setState(() {
-        name = user.name;
-        address = user.address;
-      });
+      await for (final event in _streamSerial) {
+        final data = event.data;
+        final user = DisplayUserRequest.fromBuffer(data);
+        setState(() {
+          name = user.name;
+          address = user.address;
+        });
+      }
     } on SerialPortException catch (error) {
       setState(() {
         msg = "${error.message} code: ${error.errorCode}";

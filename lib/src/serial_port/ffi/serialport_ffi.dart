@@ -2,9 +2,8 @@ import 'dart:ffi';
 
 import 'package:demo_pinpad/src/core/utils/debugger/debugger.dart';
 import 'package:demo_pinpad/src/serial_port/ffi/utils/typedef.dart';
-import 'package:ffi/ffi.dart';
 
-sealed class PortSettings extends Struct {
+sealed class PortSettingsFFI extends Struct {
   @Int32()
   external int baudRate;
 
@@ -19,9 +18,17 @@ sealed class PortSettings extends Struct {
 }
 
 abstract class SerialportFFI {
-  int sysGetInfo(int infoID, Pointer<Utf8> outBuf, Pointer<Int32> outBufLen);
+  ///
+  /// Inicializar la libreria desde el .so con FFI.
+  ///
 
-  int portOpen(int portType, Pointer<PortSettings> settings);
+  void initNativeLibrary();
+
+  ///
+  /// Funciones de puerto serial.
+  ///
+
+  int portOpen(int portType, Pointer<PortSettingsFFI> settings);
   int portFlush(int portType);
   int portWrite(int portType, Pointer<Uint8> buf, int len);
   int portReadLen(int portType, Pointer<Int32> outLen);
@@ -30,10 +37,9 @@ abstract class SerialportFFI {
   int portClose(int portType);
 }
 
-class SerialportFFIImpl implements SerialportFFI {
-  final DynamicLibrary serialportNative;
+class SerialportFFINapi implements SerialportFFI {
+  late final DynamicLibrary serialportNative;
 
-  late final SysGetInfo _getInfo;
   late final PortOpen _openPort;
   late final PortFlush _flushPort;
   late final PortWrite _writePort;
@@ -41,18 +47,17 @@ class SerialportFFIImpl implements SerialportFFI {
   late final PortRead _readPort;
   late final PortClose _closePort;
 
-  SerialportFFIImpl._(this.serialportNative) {
-    _bindLookups();
+  SerialportFFINapi() {
+    initNativeLibrary();
   }
 
-  static Future<SerialportFFIImpl> build() async {
+  @override
+  void initNativeLibrary() {
     try {
       Debugger.log("Abrir .so.");
-      final lib = DynamicLibrary.open('libserial_wrapper.so');
-
+      serialportNative = DynamicLibrary.open('libserial_wrapper.so');
+      _bindLookups();
       Debugger.log(".so cargado");
-
-      return SerialportFFIImpl._(lib);
     } catch (e) {
       throw Exception('Error al abrir wrapper.');
     }
@@ -65,7 +70,7 @@ class SerialportFFIImpl implements SerialportFFI {
   int portFlush(int portType) => _flushPort(portType);
 
   @override
-  int portOpen(int portType, Pointer<PortSettings> settings) =>
+  int portOpen(int portType, Pointer<PortSettingsFFI> settings) =>
       _openPort(portType, settings);
 
   @override
@@ -81,14 +86,7 @@ class SerialportFFIImpl implements SerialportFFI {
   int portWrite(int portType, Pointer<Uint8> buf, int len) =>
       _writePort(portType, buf, len);
 
-  @override
-  int sysGetInfo(int infoID, Pointer<Utf8> outBuf, Pointer<Int32> outBufLen) =>
-      _getInfo(infoID, outBuf, outBufLen);
-
   void _bindLookups() {
-    _getInfo =
-        serialportNative.lookupFunction<native_sys_get_info_func, SysGetInfo>(
-            'wrapper_SysGetInfo');
     _openPort = serialportNative
         .lookupFunction<native_port_open_func, PortOpen>('wrapper_PortOpen');
 

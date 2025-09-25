@@ -9,7 +9,7 @@ typedef native_sys_get_info_func = Int32 Function(
   Pointer<Int32> outBufLen,
 );
 typedef native_port_open_func = Int32 Function(
-    Int32 portType, Pointer<PortSettings> settings);
+    Int32 portType, Pointer<PortSettingsFFI> settings);
 typedef native_port_flush_func = Int32 Function(Int32 portType);
 typedef native_port_write_func = Int32 Function(
     Int32 portType, Pointer<Uint8> buf, Int32 len);
@@ -25,7 +25,8 @@ typedef SysGetInfo = int Function(
   Pointer<Utf8> outBuf,
   Pointer<Int32> outBufLen,
 );
-typedef PortOpen = int Function(int portType, Pointer<PortSettings> settings);
+typedef PortOpen = int Function(
+    int portType, Pointer<PortSettingsFFI> settings);
 typedef PortFlush = int Function(int portType);
 typedef PortWrite = int Function(int portType, Pointer<Uint8> buf, int len);
 typedef PortReadLen = int Function(int portType, Pointer<Int32> outLen);
